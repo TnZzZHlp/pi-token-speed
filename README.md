@@ -1,8 +1,12 @@
 # pi-token-speed
 
-`pi-token-speed` is a [Pi](https://github.com/earendil-works/pi-mono) extension that shows the model's live token output speed in the footer while a response streams.
+`pi-token-speed` is a [Pi](https://github.com/earendil-works/pi-mono) extension that keeps the live token output speed of the model in the footer.
 
-During generation the footer displays the current output speed measured over a rolling three-second window, for example `12.4 tok/s`. When the response finishes it switches to the message average with exact token usage, for example `avg 15 tok/s | 1,024 tok | 67.3s`, and clears after a few seconds.
+While a response streams, the footer shows the running average speed of the current message with the token count and elapsed time, for example `avg 17 tok/s | 40 tok | 1.2s`. When the response finishes, the exact token count from the provider replaces the estimate and the final average stays in the footer until the next response starts:
+
+```text
+avg 15 tok/s | 1,024 tok | 67.3s
+```
 
 Run `/speed` any time to see the last finished message alongside session totals:
 
@@ -35,8 +39,8 @@ Restart Pi, or run `/reload` in an existing interactive session, after installat
 
 ## How it works
 
-- `message_update` deltas (text, thinking, and tool-call fragments) are measured against a rolling time window. Tokens are estimated at 4 characters per token while streaming.
-- At `message_end` the estimate is replaced by the provider-reported `usage.output` token count, and the footer shows the response average.
+- `message_update` deltas (text, thinking, and tool-call fragments) are counted as they arrive. Tokens are estimated at 4 characters per token while streaming, and the footer shows the running average of the current message.
+- At `message_end` the estimate is replaced by the provider-reported `usage.output` token count. The final average stays in the footer until the next response starts.
 - `thinking` phases are included in the count and labeled `(thinking)` in the footer.
 - The footer is throttled to about seven updates per second so streaming is not slowed by status rendering.
 

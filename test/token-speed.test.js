@@ -3,15 +3,12 @@ import test from "node:test";
 
 import tokenSpeedExtension, {
 	CHARS_PER_TOKEN,
-	SPEED_WINDOW_MS,
 	STATUS_KEY,
 	deltaContribution,
 	estimateTokens,
-	formatFinalStatus,
-	formatLiveStatus,
+	formatAvgStatus,
 	formatSpeed,
 	formatSpeedSummary,
-	measureSpeed,
 } from "../extensions/token-speed.js";
 
 test("estimates tokens from characters", () => {
@@ -45,35 +42,6 @@ test("counts streaming deltas and ignores non-delta events", () => {
 	assert.deepEqual(deltaContribution(undefined), { chars: 0, tokens: 0 });
 });
 
-function makeSamples(pairs) {
-	return pairs.map(([at, tokens]) => ({ at, tokens }));
-}
-
-test("measures speed over the rolling window", () => {
-	const samples = makeSamples([
-		[0, 10],
-		[1_000, 10],
-	]);
-	assert.equal(measureSpeed(samples, 1_000, SPEED_WINDOW_MS), 20);
-
-	const old = makeSamples([
-		[0, 100],
-		[1_000, 0],
-	]);
-	assert.equal(measureSpeed(old, 5_000, 3_000), 0);
-
-	const mixed = makeSamples([
-		[0, 100],
-		[3_000, 10],
-		[4_000, 10],
-	]);
-	assert.equal(Math.round(measureSpeed(mixed, 4_500, 3_000)), 20);
-
-	assert.equal(measureSpeed([], 1_000, 3_000), 0);
-	assert.equal(measureSpeed(makeSamples([[0, 10]]), 500, 3_000), 0);
-	assert.equal(measureSpeed(undefined, 500), 0);
-});
-
 test("formats speed values", () => {
 	assert.equal(formatSpeed(0), "<0.1");
 	assert.equal(formatSpeed(0.04), "<0.1");
@@ -84,24 +52,15 @@ test("formats speed values", () => {
 	assert.equal(formatSpeed(Number.NaN), "<0.1");
 });
 
-test("formats live footer status", () => {
-	assert.equal(formatLiveStatus({ tokensPerSecond: 12.4, thinking: false }), "12 tok/s");
-	assert.equal(formatLiveStatus({ tokensPerSecond: 1.5, thinking: true }), "1.5 tok/s (thinking)");
-	assert.equal(formatLiveStatus({ tokensPerSecond: 0, thinking: false }), "<0.1 tok/s");
-	assert.equal(formatLiveStatus({ tokensPerSecond: undefined }), undefined);
-});
-
-test("formats final footer status with exact tokens", () => {
+test("formats the message average shown in the footer", () => {
 	assert.equal(
-		formatFinalStatus({ tokens: 1_024, durationMs: 67_300 }),
+		formatAvgStatus({ tokens: 1_024, durationMs: 67_300 }),
 		"avg 15 tok/s | 1,024 tok | 67.3s",
 	);
-	assert.equal(
-		formatFinalStatus({ tokens: 12, durationMs: 8_000 }),
-		"avg 1.5 tok/s | 12 tok | 8.0s",
-	);
-	assert.equal(formatFinalStatus({ tokens: 0, durationMs: 5_000 }), "avg <0.1 tok/s | 0 tok | 5.0s");
-	assert.equal(formatFinalStatus(undefined), undefined);
+	assert.equal(formatAvgStatus({ tokens: 12, durationMs: 8_000 }), "avg 1.5 tok/s | 12 tok | 8.0s");
+	assert.equal(formatAvgStatus({ tokens: 0, durationMs: 5_000 }), "avg <0.1 tok/s | 0 tok | 5.0s");
+	assert.equal(formatAvgStatus({ tokens: 10, durationMs: 0 }), "avg <0.1 tok/s | 10 tok | 0.0s");
+	assert.equal(formatAvgStatus(undefined), undefined);
 });
 
 test("formats session summaries", () => {

@@ -37,7 +37,7 @@ function delta(type, content) {
 	return { type, contentIndex: 0, delta: content, partial: { role: "assistant", content: [] } };
 }
 
-test("streaming turn drives the footer and session totals end to end", async () => {
+test("streaming turn shows running average and keeps it after completion", async () => {
 	const harness = createHarness();
 	tokenSpeedExtension(harness.pi);
 
@@ -46,8 +46,7 @@ test("streaming turn drives the footer and session totals end to end", async () 
 		harness.context,
 	);
 
-	// Simulate 1.8 seconds of streaming: four 40-char chunks at 600ms intervals.
-	// 160 chars = 40 tokens over 1.8s, so the live footer should read 22 tok/s.
+	// Four 40-char chunks at 600ms intervals: 160 chars = 40 tokens over 1.8s.
 	const start = Date.now();
 	let at = 0;
 	const originalNow = Date.now;
@@ -61,9 +60,10 @@ test("streaming turn drives the footer and session totals end to end", async () 
 			);
 		}
 
+		// Live footer shows the running average of this message (estimate).
 		const live = harness.statuses.at(-1);
 		assert.equal(live.key, STATUS_KEY);
-		assert.equal(live.text, "22 tok/s");
+		assert.equal(live.text, "avg 22 tok/s | 40 tok | 1.8s");
 
 		// 2,880 provider tokens over the same 1.8s duration = exactly 1,600 tok/s.
 		harness.handlers.message_end?.(
@@ -79,16 +79,49 @@ test("streaming turn drives the footer and session totals end to end", async () 
 		Date.now = originalNow;
 	}
 
-	// Final status uses exact provider tokens.
+	// Final footer uses exact provider tokens and stays (no auto-clear).
 	const final = harness.statuses.at(-1);
 	assert.equal(final.key, STATUS_KEY);
-	assert.match(final.text, /^avg 1600 tok\/s \| 2,880 tok \| 1\.8s$/);
+	assert.equal(final.text, "avg 1600 tok/s | 2,880 tok | 1.8s");
 
 	// The /speed command reports session totals.
 	await harness.commands.speed.handler(undefined, harness.context);
 	assert.equal(harness.notifications.length, 1);
 	assert.match(harness.notifications[0], /Session: 1 reply \| 2,880 tok output/);
 	assert.match(harness.notifications[0], /Last: avg 1600 tok\/s \| 2,880 tok \| 1\.8s/);
+
+	// The footer still shows the final average afterward.
+	harness.handlers.session_shutdown?.({}, harness.context);
+});
+
+test("thinking deltas are labeled in the running average", () => {
+	const harness = createHarness();
+	tokenSpeedExtension(harness.pi);
+
+	harness.handlers.message_start?.({ message: { role: "assistant" } }, harness.context);
+
+	const start = Date.now();
+	let at = 0;
+	const originalNow = Date.now;
+	Date.now = () => start + at;
+	try {
+		at += 1_000;
+		harness.handlers.message_update?.(
+			{ message: { role: "assistant" }, assistantMessageEvent: delta("thinking_delta", "x".repeat(80)) },
+			harness.context,
+		);
+		at += 1_000;
+		harness.handlers.message_update?.(
+			{ message: { role: "assistant" }, assistantMessageEvent: delta("text_delta", "hi") },
+			harness.context,
+		);
+	} finally {
+		Date.now = originalNow;
+	}
+
+	const live = harness.statuses.at(-1);
+	assert.equal(live.key, STATUS_KEY);
+	assert.equal(live.text, "avg 21 tok/s | 21 tok | 1.0s (thinking)");
 
 	harness.handlers.session_shutdown?.({}, harness.context);
 });
@@ -97,7 +130,6 @@ test("session shutdown clears the footer", async () => {
 	const harness = createHarness();
 	tokenSpeedExtension(harness.pi);
 
-	harness.handlers.session_start?.({}, harness.context);
 	harness.handlers.message_start?.({ message: { role: "assistant" } }, harness.context);
 	harness.handlers.message_update?.(
 		{ message: { role: "assistant" }, assistantMessageEvent: delta("text_delta", "abc") },

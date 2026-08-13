@@ -2,12 +2,12 @@
  * Token speed status extension.
  *
  * While an assistant message streams, the footer shows the running average
- * output speed of the current message. Deltas arriving through
- * `message_update` (text, thinking, and tool call fragments) are counted as
- * they arrive. Because tokens are estimated from characters (CHARS_PER_TOKEN)
- * while streaming, the final token count is taken from `usage.output` when the
- * message ends. The final average stays in the footer until the next response
- * starts.
+ * output speed of the current message as a single tokens-per-second value.
+ * Deltas arriving through `message_update` (text, thinking, and tool call
+ * fragments) are counted as they arrive. Because tokens are estimated from
+ * characters (CHARS_PER_TOKEN) while streaming, the final token count is taken
+ * from `usage.output` when the message ends. The final average stays in the
+ * footer until the next response starts.
  */
 
 export const STATUS_KEY = "token-speed";
@@ -60,19 +60,20 @@ export function formatSpeed(tokensPerSecond) {
 }
 
 /**
- * Format the message average speed for the footer. Used both while a message
- * streams (estimated tokens) and after it finishes (exact usage tokens).
+ * Format the message average speed for the footer as a single
+ * tokens-per-second value. Used both while a message streams (estimated
+ * tokens) and after it finishes (exact usage tokens).
  *
  * @param {{tokens: number, durationMs: number}} stats
  */
-export function formatAvgStatus(stats) {
+export function formatAvgSpeed(stats) {
 	const tokens = asFiniteNumber(stats?.tokens);
-	if (tokens === undefined) return undefined;
+	if (tokens === undefined || tokens === 0) return undefined;
 	const durationSec = asFiniteNumber(stats?.durationMs)
 		? Math.max(0, stats.durationMs / 1000)
 		: 0;
-	const average = durationSec > 0 ? tokens / durationSec : 0;
-	return `avg ${formatSpeed(average)} tok/s | ${tokens.toLocaleString("en-US")} tok | ${durationSec.toFixed(1)}s`;
+	if (durationSec <= 0) return undefined;
+	return `${formatSpeed(tokens / durationSec)} tok/s`;
 }
 
 /**
@@ -129,7 +130,7 @@ export default function tokenSpeedExtension(pi) {
 		const durationMs = now - activeStream.startAt;
 		if (durationMs <= 0 || activeStream.estimatedTokens === 0) return;
 
-		const text = formatAvgStatus({
+		const text = formatAvgSpeed({
 			tokens: activeStream.estimatedTokens,
 			durationMs,
 		});
@@ -193,7 +194,7 @@ export default function tokenSpeedExtension(pi) {
 		messageStats.push(stats);
 
 		// The final average stays in the footer until the next response starts.
-		lastFinalText = formatAvgStatus(stats);
+		lastFinalText = formatAvgSpeed(stats);
 		setStatus(ctx, lastFinalText);
 	});
 

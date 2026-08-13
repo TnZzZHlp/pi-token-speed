@@ -6,7 +6,7 @@ import tokenSpeedExtension, {
 	STATUS_KEY,
 	deltaContribution,
 	estimateTokens,
-	formatAvgStatus,
+	formatAvgSpeed,
 	formatSpeed,
 	formatSpeedSummary,
 } from "../extensions/token-speed.js";
@@ -52,15 +52,12 @@ test("formats speed values", () => {
 	assert.equal(formatSpeed(Number.NaN), "<0.1");
 });
 
-test("formats the message average shown in the footer", () => {
-	assert.equal(
-		formatAvgStatus({ tokens: 1_024, durationMs: 67_300 }),
-		"avg 15 tok/s | 1,024 tok | 67.3s",
-	);
-	assert.equal(formatAvgStatus({ tokens: 12, durationMs: 8_000 }), "avg 1.5 tok/s | 12 tok | 8.0s");
-	assert.equal(formatAvgStatus({ tokens: 0, durationMs: 5_000 }), "avg <0.1 tok/s | 0 tok | 5.0s");
-	assert.equal(formatAvgStatus({ tokens: 10, durationMs: 0 }), "avg <0.1 tok/s | 10 tok | 0.0s");
-	assert.equal(formatAvgStatus(undefined), undefined);
+test("formats the single average speed value shown in the footer", () => {
+	assert.equal(formatAvgSpeed({ tokens: 1_024, durationMs: 67_300 }), "15 tok/s");
+	assert.equal(formatAvgSpeed({ tokens: 12, durationMs: 8_000 }), "1.5 tok/s");
+	assert.equal(formatAvgSpeed({ tokens: 10, durationMs: 0 }), undefined);
+	assert.equal(formatAvgSpeed({ tokens: 0, durationMs: 5_000 }), undefined);
+	assert.equal(formatAvgSpeed(undefined), undefined);
 });
 
 test("formats session summaries", () => {

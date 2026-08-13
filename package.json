@@ -1,6 +1,6 @@
 {
   "name": "pi-token-speed",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A Pi footer status extension that shows live token output speed while the model streams.",
   "type": "module",
   "repository": {

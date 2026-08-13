@@ -1,0 +1,37 @@
+{
+  "name": "pi-token-speed",
+  "version": "0.1.0",
+  "description": "A Pi footer status extension that shows live token output speed while the model streams.",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TnZzZHlp/pi-token-speed.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TnZzZHlp/pi-token-speed/issues"
+  },
+  "homepage": "https://github.com/TnZzZHlp/pi-token-speed#readme",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-coding-agent",
+    "tokens",
+    "speed",
+    "throughput"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "extensions",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions/token-speed.js"
+    ]
+  }
+}

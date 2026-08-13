@@ -2,12 +2,13 @@
  * Token speed status extension.
  *
  * While an assistant message streams, the footer shows the running average
- * output speed of the current message as a single tokens-per-second value.
- * Deltas arriving through `message_update` (text, thinking, and tool call
- * fragments) are counted as they arrive. Because tokens are estimated from
- * characters (CHARS_PER_TOKEN) while streaming, the final token count is taken
- * from `usage.output` when the message ends. The final average stays in the
- * footer until the next response starts.
+ * output speed of the current message together with the elapsed time. Deltas
+ * arriving through `message_update` (text, thinking, and tool call fragments)
+ * are counted as they arrive. Because tokens are estimated from characters
+ * (CHARS_PER_TOKEN) while streaming, the final token count is taken from
+ * `usage.output` when the message ends. In every state only the average speed
+ * and the duration are shown, and the final values stay in the footer until
+ * the next response starts.
  */
 
 export const STATUS_KEY = "token-speed";
@@ -60,9 +61,9 @@ export function formatSpeed(tokensPerSecond) {
 }
 
 /**
- * Format the message average speed for the footer as a single
- * tokens-per-second value. Used both while a message streams (estimated
- * tokens) and after it finishes (exact usage tokens).
+ * Format the message average speed and duration for the footer. Used both
+ * while a message streams (estimated tokens, live elapsed time) and after it
+ * finishes (exact usage tokens, total duration).
  *
  * @param {{tokens: number, durationMs: number}} stats
  */
@@ -73,7 +74,7 @@ export function formatAvgSpeed(stats) {
 		? Math.max(0, stats.durationMs / 1000)
 		: 0;
 	if (durationSec <= 0) return undefined;
-	return `${formatSpeed(tokens / durationSec)} tok/s`;
+	return `${formatSpeed(tokens / durationSec)} tok/s | ${durationSec.toFixed(1)}s`;
 }
 
 /**

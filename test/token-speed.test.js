@@ -52,9 +52,9 @@ test("formats speed values", () => {
 	assert.equal(formatSpeed(Number.NaN), "<0.1");
 });
 
-test("formats the single average speed value shown in the footer", () => {
-	assert.equal(formatAvgSpeed({ tokens: 1_024, durationMs: 67_300 }), "15 tok/s");
-	assert.equal(formatAvgSpeed({ tokens: 12, durationMs: 8_000 }), "1.5 tok/s");
+test("formats the average speed and duration shown in the footer", () => {
+	assert.equal(formatAvgSpeed({ tokens: 1_024, durationMs: 67_300 }), "15 tok/s | 67.3s");
+	assert.equal(formatAvgSpeed({ tokens: 12, durationMs: 8_000 }), "1.5 tok/s | 8.0s");
 	assert.equal(formatAvgSpeed({ tokens: 10, durationMs: 0 }), undefined);
 	assert.equal(formatAvgSpeed({ tokens: 0, durationMs: 5_000 }), undefined);
 	assert.equal(formatAvgSpeed(undefined), undefined);

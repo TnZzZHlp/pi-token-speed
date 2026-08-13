@@ -60,10 +60,10 @@ test("streaming turn shows running average and keeps it after completion", async
 			);
 		}
 
-		// Live footer shows only the running average speed of this message.
+		// Live footer shows the running average speed and elapsed time.
 		const live = harness.statuses.at(-1);
 		assert.equal(live.key, STATUS_KEY);
-		assert.equal(live.text, "22 tok/s");
+		assert.equal(live.text, "22 tok/s | 1.8s");
 
 		// 2,880 provider tokens over the same 1.8s duration = exactly 1,600 tok/s.
 		harness.handlers.message_end?.(
@@ -82,13 +82,13 @@ test("streaming turn shows running average and keeps it after completion", async
 	// Final footer uses exact provider tokens and stays (no auto-clear).
 	const final = harness.statuses.at(-1);
 	assert.equal(final.key, STATUS_KEY);
-	assert.equal(final.text, "1600 tok/s");
+	assert.equal(final.text, "1600 tok/s | 1.8s");
 
 	// The /speed command reports session totals.
 	await harness.commands.speed.handler(undefined, harness.context);
 	assert.equal(harness.notifications.length, 1);
 	assert.match(harness.notifications[0], /Session: 1 reply \| 2,880 tok output/);
-	assert.match(harness.notifications[0], /Last: 1600 tok\/s/);
+	assert.match(harness.notifications[0], /Last: 1600 tok\/s \| 1\.8s/);
 
 	// The footer still shows the final average afterward.
 	harness.handlers.session_shutdown?.({}, harness.context);
@@ -121,7 +121,7 @@ test("thinking deltas are labeled in the running average", () => {
 
 	const live = harness.statuses.at(-1);
 	assert.equal(live.key, STATUS_KEY);
-	assert.equal(live.text, "21 tok/s (thinking)");
+	assert.equal(live.text, "21 tok/s | 1.0s (thinking)");
 
 	harness.handlers.session_shutdown?.({}, harness.context);
 });
